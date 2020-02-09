@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <title>start in a maze</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <!-- for rgb color -->
+        <script src="asset/js/rgcolor.js"></script>
+        <!-- play sound  -->
+        <script src="asset/js/mysynth.js"></script>
+        <script>
+            // RGB 最大値
+            const MAX_VALUE = 255;
+            // setTimeoutのid保持用
+            var timeId = null;
+            // 音程を配列に保持 (Cメジャー)
+            var notes = [65.4,
+                        73.41,
+                        82.4,
+                        87.3,
+                        97.99,
+                        110,
+                        123.47,
+                        130.81,
+                        146.83,
+                        164.81,
+                        174.61,
+                        195.99,
+                        220,
+                        246.94,
+                        261.62,
+                        293.66,
+                        329.62,
+                        349.22,
+                        391.99,
+                        440,
+                        493.88,
+                        523.25,
+                        587.33,
+                        659.25,
+                        698.45,
+                        783.99,
+                        880,
+                        987.76,];
+            // 波形(音色)の種類
+            var oscType = ['sine', 'square', 'sawtooth', 'triangle'];
+            // 背景色切替クラス
+            class ColorBox {
+                // コンストラクタ
+                constructor(id, defaultColor, notes, oscillatorTypes) {
+                    // 初期背景色
+                    this.color = new RGBColor(defaultColor);
+                    // 対象となる要素
+                    this.element = document.getElementById(id);
+                    // 要素に背景色を設定
+                    this.element.style.backgroundColor = defaultColor;
+                    // RGBの値をインスタンス変数に保持
+                    this.colors = {'red':this.color.r, 
+                                    'green':this.color.g, 
+                                    'blue':this.color.b};
+                    // 音再生クラスのンスタンスを生成してインスタンス変数に代入
+                    this.synth = new MySynth();
+                    // 音程の配列をインスタンス変数に代入
+                    this.notes = notes;
+                    // 波形(音色)をインスタンス変数に代入
+                    this.oscillatorTypes = oscillatorTypes
+                }
+                // RGBの値をランダムに設定する
+                setColor() {
+                    this.color.r = Math.floor(Math.random() * MAX_VALUE);
+                    this.color.g = Math.floor(Math.random() * MAX_VALUE);
+                    this.color.b = Math.floor(Math.random() * MAX_VALUE);
+                }
+                // 切替を実行する
+                // パラメータはこのクラスのインスタンス
+                run(obj) {
+                    try {
+                        // 次回実行タイミングを設定(ミリ秒後)
+                        var timing = Math.floor(Math.random() * 750);
+                        // 背景色設定
+                        obj.setColor();
+                        // 音量を設定 (0から1の間でランダム)
+                        var volume = Math.random();
+                        // 音程配列から今回再生する音程をランダムに取得
+                        var note = obj.notes[Math.floor(Math.random() * obj.notes.length)];
+                        // 波形(音色)配列から今回再生する波形をランダムに取得
+                        var oscillatorType = obj.oscillatorTypes[Math.floor(Math.random() * obj.oscillatorTypes.length)];
+                        // 背景色RGBの値から16進数のカラーコードを取得
+                        obj.element.style.backgroundColor = obj.color.toHex();
+                        // 再生
+                        if (!obj.synth.play(volume, note, oscillatorType)) {
+                            // 再生が失敗した場合は処理終了
+                            return;
+                        }
+                        // 次の処理をtimingミリ秒後に実行
+                        timeId = setTimeout(obj.run, timing, obj);
+                    } catch(e) {
+                        alert(e)
+                    }
+                }
+                // 終了処理
+                stop() {
+                    // 音声停止
+                    this.synth.stop();
+                }
+            }
+
+            $(document).ready(function() {
+                // 背景色切替クラスのインスタンス用
+                var body = null;
+                // Startボタンクリック
+                $('#start').on('click', function() {
+                    // 背景色切替クラスのインスタンス生成
+                    body = new ColorBox("body", 'black', notes, oscType);
+                    // AudioContextが使用可能な場合は実行する
+                    if (body.synth.enabled)
+                        body.run(body);
+                })
+                // Stopボタンクリック
+                $('#stop').on('click', function() {
+                    // setTimeoutを停止する
+                    window.clearTimeout(timeId);
+                    // インスタンスが設定されていない場合は終了
+                    if (body == null)
+                        return;
+                    // AudioContextが使用可能な場合は処理を停止
+                    if (body.synth.enabled)
+                        body.stop();
+                })
+            });
+        </script>
+        <style>
+        /* htmlとbodyの高さを明示する */
+        html, body{
+            height: 100%;
+        }
+        </style>
+    </head>
+    <body id="body">
+        <button id="start" type="button">start!</button>
+        <button id="stop" type="button">stop!</button>
+        <div class="w3-container w3-margin w3-center">
+            &copy; shumatz 2019
+        </div>
+    </body>
+</html>

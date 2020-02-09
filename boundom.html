@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <!-- for rgb color -->
+        <script src="asset/js/rgcolor.js"></script>
+        <!-- play sound  -->
+        <script src="asset/js/mysynth.js"></script>
+        <style>
+         /* html body のサイズを明記する */
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+        </style>
+        <script>
+            // 繰り返し終了ため
+            var timeId = null;
+            // 暴れる円のクラス
+            class Circle {
+                // コンストラクタ
+                constructor(elementId, args = new Array()) {
+                    // 対象となるキャンキャンバス
+                    this.element = document.getElementById(elementId);
+                    // キャンバスの横幅
+                    this.width = this.element.clientWidth;
+                    // キャンバスの立幅
+                    this.height = this.element.clientHeight;
+                    // キャンバスコンテキスト設定
+                    this.context = this.element.getContext("2d");
+                    // 円開始の場所初期値(キャンバス中央)
+                    this.x = this.element.clientWidth / 2;
+                    this.y = this.element.clientHeight / 2;
+                    // 円の半径初期値
+                    this.radius = 50;
+                    // 円の開始角度
+                    this.start = 0;
+                    // 円の終了 角度 (完全円を表示する)
+                    this.end = 360;
+                    // 右回りか左回りか(右回り:時計回り)
+                    this.rotation = true;
+                    // 円の中を描画するかどうか
+                    this.isFill = true;
+                    // 円の描画色
+                    this.fillStyle = "black"
+                    // 線を表示するかどうか
+                    this.isStroke = false;
+                    // 線の色
+                    this.strokeStyle = "black"
+                    // x座標が進むピクセル
+                    this.xStep = 0;
+                    // y座標が進むピクセル
+                    this.yStep = 0;
+                    // 一回に進むピクセル
+                    this.step = 1;
+                    // 繰り返しタイミングのミリ秒
+                    this.setTime = 10;
+                    // オブジェクトの進角度
+                    this.angle = 45;
+                    // キャンバス内のX方向どちらに向かうか (1 右方向 -1 左方向)
+                    this.xDirection = 1;
+                    // キャンバス内のy方向どちら向かうか(1 下方向　-1 上方向)
+                    this.yDirection = 1;
+                    //　パラメータ設定
+                    this.setArguments(args);
+                    // キャンバス内の他の円オブジェクト
+                    this.balls = new Array();
+                    // 出発座標と到着座標の設定
+                    this.setFromTo();
+                    // 描画を初期化するタイミングを設定するカウント
+                    this.count = 0;
+                    // 音声出力オブジェクト
+                    this.synth = new MySynth();
+                }
+                setArguments(args) {
+                    // x座標
+                    if (args['x']) {
+                        this.x = args['x'];
+                    }
+                    // y座標
+                    if (args['y']) {
+                        this.y = args['y'];
+                    }
+                    // 半径
+                    if (args['radius']) {
+                        this.radius = args['radius'];
+                    } 
+                    // 開始角度
+                    if (args['start']) {
+                        this.start = args['start'];
+                    }
+                    // 終了角度
+                    if (args['end']) {
+                        this.end = args['end'];
+                    }
+                    // 回転方向 true: 時計周り false:反対
+                    if (args['rotation']) {
+                        this.rotation = args['rotation'];
+                    }
+                    // 塗りつぶしっ描画色
+                    if (args['fillStyle']) {
+                        this.fillStyle = args['fillStyle'];
+                    }
+                    // 塗りつぶし描画判断
+                    if (args['isFill']) {
+                        this.fillStyle = args['fill'];
+                    }
+                    // 線描画色
+                    if (args['strokeStyle']) {
+                        this.strokeStyle = args['strokeStyle'];
+                    }
+                    // 線描画半田
+                    if (args[
+                        'isStroke']) {
+                        this.stroke = args['stroke'];
+                    }
+                    // 繰り返しタイミング(ミリ秒)
+                    if (args['setTime']) {
+                        this.setTime = args['setTime'];
+                    }
+                    // 移動角度
+                    if (args['angle']) {
+                        this.angle = args['angle'];
+                    }
+                    // 1回のタイミングで進むピクセル
+                    if (args['step']) {
+                        this.step = args['step'];
+                    }
+
+                    if (args['yDirection']) {
+                        this.yDirection = args['yDirection'];
+                    }
+                    if (args['xDirection']) {
+                        this.xDirection = args['xDirection'];
+                    }
+                    this.notes = {'C1': 65.4,
+                        'D1': 73.41,
+                        'E1': 82.4,
+                        'F1': 87.3,
+                        'G1': 97.99,
+                        'A1': 110,
+                        'B1':123.47,
+                        'C2':130.81,
+                        'D2':146.83,
+                        'E2':164.81,
+                        'F2':174.61,
+                        'G2':195.99,
+                        'A2':220,
+                        'B2':246.94,
+                        'C3':261.62,
+                        'D3':293.66,
+                        'E3':329.62,
+                        'F3':349.22,
+                        'G3':391.99,
+                        'A3':440,
+                        'B3':493.88,
+                        'C4':523.25,
+                        'D4':587.33,
+                        'E4':659.25,
+                        'F4':698.45,
+                        'G4':783.99,
+                        'A4':880,
+                        'B4':987.76,
+                        };
+                    this.keys = ['C1', 
+                        'D1', 
+                        'E1', 
+                        'F1', 
+                        'G1', 
+                        'A1', 
+                        'B1',
+                        'C2',
+                        'D2',
+                        'E2',
+                        'F2',
+                        'G2',
+                        'A2',
+                        'B2',
+                        'C3',
+                        'D3',
+                        'E3',
+                        'F3',
+                        'G3',
+                        'A3',
+                        'B3',
+                        'C4',
+                        'D4',
+                        'E4',
+                        'F4',
+                        'G4',
+                        'A4',
+                        'B4',
+                        ];
+                    this.oscillatorTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+                }
+                setBalls(obj) {
+                    this.balls.push(obj);
+                }
+                getStartAngle() {
+                    return this.start * Math.PI / 180;
+                }
+                getEndAngle() {
+                    return this.end * Math.PI / 180;
+                }
+                draw(args = new Array()) {
+                    // this.context.globalCompositeOperation = "destination-atop";
+                    this.setArguments(args);
+                    this.context.beginPath();
+                    this.context.arc(this.x, this.y, this.radius, this.getStartAngle(), this.getEndAngle(), this.rotation);
+                    if (this.isFill) {
+                        this.context.fillStyle = this.fillStyle;
+                        this.context.fill();
+                        this.context.lineTo(this.x, this.y);
+                    }
+                    if (this.isStroke) {
+                        this.context.strokeStyle = this.strokeStyle;
+                        this.context.closePath();
+                        this.context.stroke();
+                    }
+                }
+                setStep() {
+                    this.yStep = Math.sin(Math.PI / (180 / this.angle)) * this.step;
+                    this.xStep = Math.cos(Math.PI / (180 / this.angle)) * this.step;
+                }
+                calcAdjacent(y, angle) {
+                    var h = y / Math.sin(Math.PI / (180 / angle));
+                    return h * Math.cos(Math.PI / (180 / angle));
+                }
+                calcOpposite(x, angle) {
+                    var h = x / Math.cos(Math.PI / (180 / angle));
+                    return h * Math.sin(Math.PI / (180 / angle));
+                }
+                getX(type) {
+                    switch (type)  {
+                        case 1:
+                            return this.x + this.calcAdjacent(this.element.clientHeight - this.y, this.angle);
+                        case 2:
+                            return this.x - this.calcAdjacent(this.element.clientHeight - this.y, this.angle);
+                        case 3:
+                            return this.x + this.calcAdjacent(this.y, this.angle);
+                        case 4:
+                        return this.x - this.calcAdjacent(this.y, this.angle);
+                    }
+                }
+                getXYFrom() {
+                    if (this.yDirection == 1 && this.xDirection == 1) {
+                        return this.getY(this.getX(4), 4);
+                    } else if (this.yDirection == 1 && this.xDirection == -1) {
+                        return this.getY(this.getX(3), 3);
+                    } else if (this.yDirection == -1 && this.xDirection == 1) {
+                        return this.getY(this.getX(2), 2);
+                    } else if (this.yDirection == -1 && this.xDirection == -1) {
+                        return this.getY(this.getX(1), 1);
+                    }
+                }
+                getXYTo() {
+                    if (this.yDirection == 1 && this.xDirection == 1) {
+                        return this.getY(this.getX(1), 1);
+                    } else if (this.yDirection == 1 && this.xDirection == -1) {
+                        return this.getY(this.getX(2), 2);
+                    } else if (this.yDirection == -1 && this.xDirection == 1) {
+                        return this.getY(this.getX(3), 3);
+                    } else if (this.yDirection == -1 && this.xDirection == -1) {
+                        return this.getY(this.getX(4), 4);
+                    }
+                }
+                isXInCanvas(x) {
+                    if (0 <= x && x <= this.element.clientWidth) {
+                        return true;
+                    }
+                    return false;
+                }
+                getY(x, type) {
+                    var returnValue = new Array();
+                    switch (type) {
+                        case 1:
+                            if (!this.isXInCanvas(x)) {
+                                return {
+                                    'x': this.width,
+                                    'y': this.y + this.calcOpposite(this.width - this.x, this.angle),
+                                };
+                            } else {
+                                return {
+                                    'x': x,
+                                    'y': this.height,
+                                };
+                            }
+                        case 2:
+                            if (!this.isXInCanvas(x)) {
+                                return {
+                                    'x': 0,
+                                    'y': this.y + this.calcOpposite(this.x, this.angle),
+                                };
+                            } else {
+                                return {
+                                    'x': x,
+                                    'y': this.height,
+                                };
+                            }
+                        case 3:
+                            if (!this.isXInCanvas(x)) {
+                                return {
+                                    'x': this.width,
+                                    'y': this.y - this.calcOpposite(this.width - this.x, this.angle),
+                                };
+                            } else {
+                                return {
+                                    'x': x,
+                                    'y': 0,
+                                };
+                            }
+                        case 4:
+                            if (!this.isXInCanvas(x)) {
+                                return {
+                                    'x': 0,
+                                    'y': this.y - this.calcOpposite(this.x, this.angle),
+                                };
+                            } else {
+                                return {
+                                    'x': x,
+                                    'y': 0,
+                                };
+                            }
+                    }
+                }
+                isYFromTo(y) {
+                    if (y != 0 && y != this.element.clientHeight) {
+                        return false;
+                    }
+                    return true;
+                }
+                setFromTo() {
+                    var xyFrom = this.getXYFrom();
+                    this.xFrom = xyFrom['x'];
+                    this.yFrom = xyFrom['y'];
+                    var xyTo = this.getXYTo();
+                    this.xTo = xyTo['x'];
+                    this.yTo = xyTo['y'];
+                }
+                drawLine() {
+                    // this.context.globalCompositeOperation = "destination-atop";
+                    this.context.beginPath();
+                    this.context.moveTo(this.yFrom, this.xFrom);
+                    this.context.lineTo(this.yTo, this.xTo);
+                    this.context.closePath();
+                    this.context.strokeStyle = this.strokeStyle;
+                    this.context.stroke();
+                    var xLength = this.xTo - this.xFrom;
+                    var yLength = this.yTo - this.yFrom;
+                    var radian = Math.atan2(yLength, xLength);
+                    var angle = radian * 180 / Math.PI;
+                }
+                resetCount() {
+                    var count = Math.random() * 50;
+                    if (this.count >= count) {
+                        this.context.clearRect(0,0,800,600);
+                        this.count = 0;
+                    } else {
+                        this.count++;
+                    }
+                    this.element.style.zIndex = Math.floor(Math.random() * 3);
+                    this.playSound();
+                }
+                playSound() {
+                    // 音量を設定 (0から1の間でランダム)
+                    var volume = Math.floor(Math.random() * 100);
+                    // 音程配列から今回再生する音程をランダムに取得
+                    var note = this.notes[this.keys[Math.floor(Math.random() * this.keys.length)]];
+                    // 波形(音色)配列から今回再生する波形をランダムに取得
+                    var oscillatorType = this.oscillatorTypes[Math.floor(Math.random() * this.oscillatorTypes.length)];
+                    this.synth.play(volume, note, oscillatorType);
+                }
+                setAngle() {
+                    var addAngle = (this.angle > 0) ? 180 : -180;
+
+                    this.angle = addAngle - this.angle; 
+                }
+                isTouch() {
+                    var result = false;
+                    var obj = this;
+                    this.balls.forEach(function(ball) {
+                        let b = Math.abs(obj.x - ball.x);
+                        let a = Math.abs(obj.y - ball.y);
+                        var n = b * b + a * a;
+                        var h = Math.sqrt(n);
+                        if (h - ball.radius - obj.radius <= 0) {
+                            result = true;
+                            if (obj.x > ball.x) {
+                                obj.setAngle();
+                            }
+                            if (obj.y > ball.y) {
+                                obj.angle = obj.angle * -1;
+                            }
+                            return true;
+                        }
+                    });
+                    return result;
+                }
+                move(obj) {
+                    obj.setStep();
+                    var changed = false;
+                    if (obj.isTouch()) {
+                        changed = true;
+                    }
+                    if (obj.y - obj.radius <= 0 || obj.y + obj.radius >= obj.height) {
+                        obj.angle = obj.angle * -1;
+                        changed = true;
+                    }
+                    if (obj.x - obj.radius <= 0 || obj.x + obj.radius >= obj.width) {
+                        obj.setAngle();
+                        changed = true;
+                    }
+                    if (changed) {
+                        obj.setStep();
+                        obj.setFromTo();
+                        obj.resetCount();
+                        // return;
+                    }
+                    obj.y = obj.y + (obj.yStep);
+                    obj.x = obj.x + (obj.xStep);
+                    obj.drawLine();
+                    obj.draw();
+                    timeId = setTimeout(obj.move, obj.setTime, obj);
+                }
+                stop() {
+                    clearTimeout(timeId);
+                    this.synth.stop();
+                }
+            }
+            window.onload = function () {
+                var args1 = {
+                    'x': 670,
+                    'y': 300,
+                    'angle': 45,
+                    'fillStyle':'red',
+                    'radius': 30,
+                    'setTime' : 50,
+                    'step': 6,
+                    'strokeStyle': 'gray',
+                };
+                var circle1 = new Circle('object-a', args1);
+                circle1.draw();
+                var args2 = {
+                    'x': 150,
+                    'y': 30,
+                    'fillStyle':'blue',
+                    'angle': -45,
+                    'radius': 15,  
+                    'step' : 10,
+                    'setTime' : 8,
+                    'strokeStyle': 'olive',
+                };
+                var circle2 = new Circle('object-b', args2);
+                circle2.draw();
+                var args3 = {
+                    'x': 600,
+                    'y': 550,
+                    'fillStyle':'purple',
+                    'angle': 150,
+                    'radius': 25,
+                    'step' : 2,
+                    'setTime' : 10,
+                    'xDirection': 1,
+                    'yDirection': 1,                   
+                };
+                var circle3 = new Circle('object-c', args3);
+                circle3.draw();
+                circle1.setBalls(circle2);
+                circle1.setBalls(circle3);
+                circle2.setBalls(circle1);
+                circle2.setBalls(circle3);
+                circle3.setBalls(circle1);
+                circle3.setBalls(circle2);
+                
+                function doFirst() {
+                    circle1.move(circle1);
+                }
+                function doSecond() {
+                    circle2.draw();
+                    circle2.move(circle2);
+                }
+                function doThird() {
+                    circle3.move(circle3);
+                }
+                $('#stop1').on('click', function() {
+                    circle1.stop();
+                });
+                $('#stop2').on('click', function() {
+                    circle2.stop();
+                });
+                $('#stop3').on('click', function() {
+                    circle3.stop();
+                });
+                $('#stop').on('click', function() {
+                    circle1.stop();
+                    circle2.stop();
+                    circle3.stop();
+                    circle1.synth.stop();
+                    circle2.synth.stop();
+                    circle3.synth.stop();
+                });
+                $('#start1').on('click', function() {
+                    doFirst();
+                });
+                $('#start2').on('click', function() {
+                    doSecond();
+                });
+                $('#start3').on('click', function() {
+                    doThird();
+                });
+            }
+           
+            
+        </script>
+    </head>
+    <body>
+        
+        <div id="canvas-area" style="display: block;height: 600px;width: 800px;border:solid 1px;margin:auto auto;position:relative;">
+            <canvas id="object-a" width="800px" height="600px" style="width: 800px;height:600px;position:absolute;top:0;left:0;"></canvas>
+            <canvas id="object-b" width="800px" height="600px" style="width: 800px;height:600px;position:absolute;top:0;left:0;"></canvas>
+            <canvas id="object-c" width="800px" height="600px" style="width: 800px;height:600px;position:absolute;top:0;left:0;"></canvas>
+        </div>
+        <div class="w3-container w3-margin">
+            <div class="w3-row w3-center w3-margin">
+                <button id="start1" class="w3-button w3-red">Start1</button>
+                <button id="start2" class="w3-button w3-blue">Start2</button>
+                <button id="start3" class="w3-button w3-purple">Start3</button>
+                <button id="stop1" class="w3-button w3-black">Stop1</button>
+                <button id="stop2" class="w3-button w3-black">Stop2</button>
+                <button id="stop3" class="w3-button w3-black">Stop3</button>
+                <button id="stop" class="w3-button w3-black">Stop ALL</button>
+            </div>
+        </div>
+        <div class="w3-container w3-margin w3-center">
+            &copy; shumatz 2019
+        </div>
+        
+    </body>
+</html>
