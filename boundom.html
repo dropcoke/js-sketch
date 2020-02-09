@@ -75,6 +75,8 @@
                     this.count = 0;
                     // 音声出力オブジェクト
                     this.synth = new MySynth();
+                    this.color = new RGBColor('black');
+                    this.run = false;
                 }
                 setArguments(args) {
                     // x座標
@@ -137,6 +139,7 @@
                     if (args['xDirection']) {
                         this.xDirection = args['xDirection'];
                     }
+                    // 音階を周波数に設定
                     this.notes = {'C1': 65.4,
                         'D1': 73.41,
                         'E1': 82.4,
@@ -166,6 +169,7 @@
                         'A4':880,
                         'B4':987.76,
                         };
+                    // 音階
                     this.keys = ['C1', 
                         'D1', 
                         'E1', 
@@ -197,165 +201,138 @@
                         ];
                     this.oscillatorTypes = ['sine', 'square', 'sawtooth', 'triangle'];
                 }
+                // 他のキャンバスのオブジェクトを追加する
                 setBalls(obj) {
                     this.balls.push(obj);
                 }
+                // 描画開始角度
                 getStartAngle() {
                     return this.start * Math.PI / 180;
                 }
+                // 描画終了角度
                 getEndAngle() {
                     return this.end * Math.PI / 180;
                 }
+                // 塗りつぶし
                 draw(args = new Array()) {
-                    // this.context.globalCompositeOperation = "destination-atop";
+                    // パラメータ設定
                     this.setArguments(args);
+                    // 描画開始
                     this.context.beginPath();
+                    // 円を設定する
                     this.context.arc(this.x, this.y, this.radius, this.getStartAngle(), this.getEndAngle(), this.rotation);
+                    // 塗りつぶし
                     if (this.isFill) {
                         this.context.fillStyle = this.fillStyle;
                         this.context.fill();
                         this.context.lineTo(this.x, this.y);
                     }
+                    // 線を描画する
                     if (this.isStroke) {
                         this.context.strokeStyle = this.strokeStyle;
                         this.context.closePath();
                         this.context.stroke();
                     }
                 }
+                // XY毎に進行するピクセルを設定
                 setStep() {
+                    // 縦移動 Sinθ * ピクセル数
                     this.yStep = Math.sin(Math.PI / (180 / this.angle)) * this.step;
+                    // 横移動 Cosθ * ピクセル数
                     this.xStep = Math.cos(Math.PI / (180 / this.angle)) * this.step;
                 }
+                // 底辺算出
                 calcAdjacent(y, angle) {
+                    // 斜辺 : 対辺 / Sinθ
                     var h = y / Math.sin(Math.PI / (180 / angle));
+                    // 斜辺 * Cosθ
                     return h * Math.cos(Math.PI / (180 / angle));
                 }
+                // 対辺算出
                 calcOpposite(x, angle) {
+                    // 対辺: 底辺 / Cosθ
                     var h = x / Math.cos(Math.PI / (180 / angle));
+                    // 斜辺 * Sinθ
                     return h * Math.sin(Math.PI / (180 / angle));
                 }
-                getX(type) {
-                    switch (type)  {
-                        case 1:
-                            return this.x + this.calcAdjacent(this.element.clientHeight - this.y, this.angle);
-                        case 2:
-                            return this.x - this.calcAdjacent(this.element.clientHeight - this.y, this.angle);
-                        case 3:
-                            return this.x + this.calcAdjacent(this.y, this.angle);
-                        case 4:
-                        return this.x - this.calcAdjacent(this.y, this.angle);
-                    }
-                }
-                getXYFrom() {
-                    if (this.yDirection == 1 && this.xDirection == 1) {
-                        return this.getY(this.getX(4), 4);
-                    } else if (this.yDirection == 1 && this.xDirection == -1) {
-                        return this.getY(this.getX(3), 3);
-                    } else if (this.yDirection == -1 && this.xDirection == 1) {
-                        return this.getY(this.getX(2), 2);
-                    } else if (this.yDirection == -1 && this.xDirection == -1) {
-                        return this.getY(this.getX(1), 1);
-                    }
-                }
-                getXYTo() {
-                    if (this.yDirection == 1 && this.xDirection == 1) {
-                        return this.getY(this.getX(1), 1);
-                    } else if (this.yDirection == 1 && this.xDirection == -1) {
-                        return this.getY(this.getX(2), 2);
-                    } else if (this.yDirection == -1 && this.xDirection == 1) {
-                        return this.getY(this.getX(3), 3);
-                    } else if (this.yDirection == -1 && this.xDirection == -1) {
-                        return this.getY(this.getX(4), 4);
-                    }
-                }
+                // X座標がキャンバス内になるかどうか
                 isXInCanvas(x) {
                     if (0 <= x && x <= this.element.clientWidth) {
                         return true;
                     }
                     return false;
                 }
-                getY(x, type) {
-                    var returnValue = new Array();
-                    switch (type) {
-                        case 1:
-                            if (!this.isXInCanvas(x)) {
-                                return {
-                                    'x': this.width,
-                                    'y': this.y + this.calcOpposite(this.width - this.x, this.angle),
-                                };
-                            } else {
-                                return {
-                                    'x': x,
-                                    'y': this.height,
-                                };
+                // 出発座標取得
+                getXYFrom() {
+                    var getX = function(obj) {
+                        return obj.x - obj.calcAdjacent(obj.y, obj.angle);
+                    };
+                    var getY = function(x, obj) {
+                        if (obj.isXInCanvas(x)) {
+                            return {
+                                'x': x,
+                                'y': 0,
                             }
-                        case 2:
-                            if (!this.isXInCanvas(x)) {
-                                return {
+                        }
+                        if (obj.angle <= -90 && obj.angle <= 90) {
+                            return {
                                     'x': 0,
-                                    'y': this.y + this.calcOpposite(this.x, this.angle),
+                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.x, obj.angle)),
                                 };
-                            } else {
-                                return {
-                                    'x': x,
-                                    'y': this.height,
+                        } else {
+                            return {
+                                    'x': obj.width,
+                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
                                 };
-                            }
-                        case 3:
-                            if (!this.isXInCanvas(x)) {
-                                return {
-                                    'x': this.width,
-                                    'y': this.y - this.calcOpposite(this.width - this.x, this.angle),
-                                };
-                            } else {
-                                return {
-                                    'x': x,
-                                    'y': 0,
-                                };
-                            }
-                        case 4:
-                            if (!this.isXInCanvas(x)) {
-                                return {
-                                    'x': 0,
-                                    'y': this.y - this.calcOpposite(this.x, this.angle),
-                                };
-                            } else {
-                                return {
-                                    'x': x,
-                                    'y': 0,
-                                };
-                            }
-                    }
+                        }
+                    };
+                    return getY(getX(this), this);
                 }
-                isYFromTo(y) {
-                    if (y != 0 && y != this.element.clientHeight) {
-                        return false;
-                    }
-                    return true;
+                // 到着座標取得
+                getXYTo() {
+                    var getX = function(obj) {
+                        return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
+                    };
+                    var getY = function(x, obj) {
+                        if (obj.isXInCanvas(x)) {
+                            return {
+                                    'x': x,
+                                    'y': obj.height,
+                                };
+                        }
+                        if (obj.angle <= -90 && obj.angle <= 90) {
+                            return {
+                                    'x': obj.width,
+                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
+                                };
+                        } else {
+                            return {
+                                    'x': 0,
+                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
+                                };
+                        }
+                    };
+                    return getY(getX(this), this);
                 }
                 setFromTo() {
-                    var xyFrom = this.getXYFrom();
-                    this.xFrom = xyFrom['x'];
-                    this.yFrom = xyFrom['y'];
-                    var xyTo = this.getXYTo();
-                    this.xTo = xyTo['x'];
-                    this.yTo = xyTo['y'];
+                    this.xyFrom = this.getXYFrom();
+                    this.xyTo = this.getXYTo();
                 }
                 drawLine() {
                     // this.context.globalCompositeOperation = "destination-atop";
                     this.context.beginPath();
-                    this.context.moveTo(this.yFrom, this.xFrom);
-                    this.context.lineTo(this.yTo, this.xTo);
+                    this.context.moveTo(this.xyFrom['x'], this.xyFrom['y']);
+                    this.context.lineTo(this.xyTo['x'], this.xyTo['y']);
                     this.context.closePath();
                     this.context.strokeStyle = this.strokeStyle;
                     this.context.stroke();
-                    var xLength = this.xTo - this.xFrom;
-                    var yLength = this.yTo - this.yFrom;
+                    var xLength = this.xyTo['x'] - this.xyFrom['x'];
+                    var yLength = this.xyTo['y'] - this.xyFrom['y'];
                     var radian = Math.atan2(yLength, xLength);
                     var angle = radian * 180 / Math.PI;
                 }
                 resetCount() {
-                    var count = Math.random() * 50;
+                    var count = Math.random() * 100;
                     if (this.count >= count) {
                         this.context.clearRect(0,0,800,600);
                         this.count = 0;
@@ -401,6 +378,9 @@
                     return result;
                 }
                 move(obj) {
+                    if(!obj.run) {
+                        obj.run = true;
+                    }
                     obj.setStep();
                     var changed = false;
                     if (obj.isTouch()) {
@@ -415,6 +395,7 @@
                         changed = true;
                     }
                     if (changed) {
+                        obj.changeColor();
                         obj.setStep();
                         obj.setFromTo();
                         obj.resetCount();
@@ -430,42 +411,74 @@
                     clearTimeout(timeId);
                     this.synth.stop();
                 }
+                changeColor() {
+                    this.color.r = Math.floor(Math.random() * 256);
+                    this.color.g = Math.floor(Math.random() * 256);
+                    this.color.b = Math.floor(Math.random() * 256);
+                    var a = Math.floor(Math.random() * 11) / 10;
+                    this.fillStyle = this.color.toHex();
+                    this.context.globalAlpha = a;
+                    this.color.r = Math.floor(Math.random() * 256);
+                    this.color.g = Math.floor(Math.random() * 256);
+                    this.color.b = Math.floor(Math.random() * 256);
+                    this.strokeStyle = this.color.toHex();
+                }
             }
+            getDefaultXY = function() {
+                return {
+                    x: Math.floor(Math.random() * 600) + 100,
+                    y: Math.floor(Math.random() * 400) + 100
+                }
+            }
+            getRadius = function() {
+                return Math.floor(Math.random() * 25) + 15;
+            }
+            getStep = function() {
+                return Math.floor(Math.random() * 10);
+            }
+            getTime = function() {
+                return Math.floor(Math.random() * 10) + 5;
+            }
+            
             window.onload = function () {
+                var xy1 = getDefaultXY();
+                var xy2 = getDefaultXY();
+                var xy3 = getDefaultXY();
                 var args1 = {
-                    'x': 670,
-                    'y': 300,
-                    'angle': 45,
-                    'fillStyle':'red',
-                    'radius': 30,
-                    'setTime' : 50,
-                    'step': 6,
-                    'strokeStyle': 'gray',
+                    'x': xy1.x,
+                    'y': xy1.y,
+                    'angle': -45,
+                    'fillStyle': 'red',
+                    'radius': getRadius(),
+                    'setTime' : getTime(),
+                    'step': getStep(),
+                    'strokeStyle': 'black',
                 };
                 var circle1 = new Circle('object-a', args1);
                 circle1.draw();
                 var args2 = {
-                    'x': 150,
-                    'y': 30,
-                    'fillStyle':'blue',
-                    'angle': -45,
-                    'radius': 15,  
-                    'step' : 10,
-                    'setTime' : 8,
-                    'strokeStyle': 'olive',
+                    'x': xy2.x,
+                    'y': xy2.y,
+                    'fillStyle': 'blue',
+                    'angle': 60,
+                    'radius': getRadius(),  
+                    'step' : getStep(),
+                    'setTime' : getTime(),
+                    'strokeStyle': 'black',
                 };
                 var circle2 = new Circle('object-b', args2);
                 circle2.draw();
                 var args3 = {
-                    'x': 600,
-                    'y': 550,
-                    'fillStyle':'purple',
+                    'x': xy3.x,
+                    'y': xy3.y,
+                    'fillStyle': 'purple',
                     'angle': 150,
-                    'radius': 25,
-                    'step' : 2,
-                    'setTime' : 10,
+                    'radius': getRadius(),
+                    'step' : getStep(),
+                    'setTime' : getTime(),
                     'xDirection': 1,
-                    'yDirection': 1,                   
+                    'yDirection': 1,  
+                    'strokeStyle': 'black',
                 };
                 var circle3 = new Circle('object-c', args3);
                 circle3.draw();
