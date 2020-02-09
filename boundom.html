@@ -75,9 +75,11 @@
                     this.count = 0;
                     // 音声出力オブジェクト
                     this.synth = new MySynth();
+                    // RGB色設定オブジェクト
                     this.color = new RGBColor('black');
                     this.run = false;
                 }
+                // パラメータ設定
                 setArguments(args) {
                     // x座標
                     if (args['x']) {
@@ -131,13 +133,6 @@
                     // 1回のタイミングで進むピクセル
                     if (args['step']) {
                         this.step = args['step'];
-                    }
-
-                    if (args['yDirection']) {
-                        this.yDirection = args['yDirection'];
-                    }
-                    if (args['xDirection']) {
-                        this.xDirection = args['xDirection'];
                     }
                     // 音階を周波数に設定
                     this.notes = {'C1': 65.4,
@@ -264,51 +259,98 @@
                 }
                 // 出発座標取得
                 getXYFrom() {
+                    // X座標取得
                     var getX = function(obj) {
-                        return obj.x - obj.calcAdjacent(obj.y, obj.angle);
+                        if (0 <= obj.angle) {
+                            // 高さと角度からY=0のx座標を求める
+                            return obj.x - obj.calcAdjacent(obj.y, obj.angle);
+                        } else {
+                            return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
+                        }
+                       
                     };
+                    // Y座標取得 X座標修正
                     var getY = function(x, obj) {
+                        // X座標がキャンバスにおさまっている場合はy座標は0(上の端) X座標は元のまま
                         if (obj.isXInCanvas(x)) {
-                            return {
+                            if (0 <= obj.angle) {
+                                return {
                                 'x': x,
                                 'y': 0,
+                                }
+                            } else {
+                                return {
+                                'x': x,
+                                'y': obj.height,
+                                }
                             }
+                           
                         }
-                        if (obj.angle <= -90 && obj.angle <= 90) {
+                        // X座標がキャンバスの外に出た場合は, X座標を固定して左右に接するY座標を求める
+                        if (0 <= obj.angle && obj.angle <= 90) {
                             return {
                                     'x': 0,
                                     'y': obj.y - Math.abs(obj.calcOpposite(obj.x, obj.angle)),
                                 };
-                        } else {
+                        } else if (90 < obj.angle){
                             return {
                                     'x': obj.width,
                                     'y': obj.y - Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
                                 };
+                        } else if (-90 <= obj.angle && obj.angle < 0) {
+                            return {
+                                    'x': 0,
+                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
+                                };
+                        } else {
+                            return {
+                                    'x': obj.width,
+                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
+                            };
                         }
                     };
+                    // 出発点のXY座標を返す
                     return getY(getX(this), this);
                 }
                 // 到着座標取得
                 getXYTo() {
                     var getX = function(obj) {
-                        return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
+                        if (0 <= obj.angle) {
+                            return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
+                        } else {
+                            return obj.x - obj.calcAdjacent(obj.y, obj.angle);
+                        }
+                        
                     };
                     var getY = function(x, obj) {
                         if (obj.isXInCanvas(x)) {
-                            return {
+                            if (0 <= obj.angle) { 
+                                return {
                                     'x': x,
                                     'y': obj.height,
                                 };
+                            } else {
+                                return {
+                                    'x': x,
+                                    'y': 0,
+                                };
+                            }
+                            
                         }
-                        if (obj.angle <= -90 && obj.angle <= 90) {
+                        if (0 <= obj.angle) {
                             return {
                                     'x': obj.width,
                                     'y': obj.y + Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
                                 };
-                        } else {
+                        }  else if (-90 <= obj.angle && obj.angle < 0) {
                             return {
                                     'x': 0,
                                     'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
+                                };
+                        } else {
+                            return {
+                                    'x': 0,
+                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.x, obj.angle)),
                                 };
                         }
                     };
@@ -316,7 +358,9 @@
                 }
                 setFromTo() {
                     this.xyFrom = this.getXYFrom();
+                    console.log("from x:" + this.xyFrom.x + " y:" +this.xyFrom.y);
                     this.xyTo = this.getXYTo();
+                    console.log("To x:" + this.xyTo.x + " y:" +this.xyTo.y);
                 }
                 drawLine() {
                     // this.context.globalCompositeOperation = "destination-atop";
@@ -366,12 +410,7 @@
                         var h = Math.sqrt(n);
                         if (h - ball.radius - obj.radius <= 0) {
                             result = true;
-                            if (obj.x > ball.x) {
-                                obj.setAngle();
-                            }
-                            if (obj.y > ball.y) {
-                                obj.angle = obj.angle * -1;
-                            }
+                            obj.setAngle();
                             return true;
                         }
                     });
@@ -415,7 +454,7 @@
                     this.color.r = Math.floor(Math.random() * 256);
                     this.color.g = Math.floor(Math.random() * 256);
                     this.color.b = Math.floor(Math.random() * 256);
-                    var a = Math.floor(Math.random() * 11) / 10;
+                    var a = Math.floor(Math.random() * 10) / 10 + 0.1;
                     this.fillStyle = this.color.toHex();
                     this.context.globalAlpha = a;
                     this.color.r = Math.floor(Math.random() * 256);
@@ -447,7 +486,7 @@
                 var args1 = {
                     'x': xy1.x,
                     'y': xy1.y,
-                    'angle': -45,
+                    'angle': 45,
                     'fillStyle': 'red',
                     'radius': getRadius(),
                     'setTime' : getTime(),
