@@ -221,140 +221,58 @@
                     // 斜辺 * Sinθ
                     return h * Math.sin(Math.PI / (180 / angle));
                 }
-                // X座標がキャンバス内になるかどうか
-                isXInCanvas(x) {
-                    if (0 <= x && x < this.element.clientWidth) {
-                        return true;
+                // キャンバスに接触するXY座標
+                getCanvasEdge(angle) {
+                    // XY座標
+                    var x, y;
+                    // 対辺初期値
+                    var yLength = this.y;
+                    // 底辺初期値
+                    var xLength = this.x;
+                    // X加算値
+                    var xPlus = 1;
+                    // Y加算値
+                    var yPlus = 1;
+                    if (0 <= angle) {
+                        // 角度が正数の場合
+                        // 下に向かうのでY=縦幅
+                        y = this.height;
+                        // 高さは縦幅-Y
+                        yLength = this.height - this.y;
+                        if (angle < 90) {
+                            // 角度が90未満は横幅-X
+                            xLength = this.width - this.x;
+                        }
+                    } else {
+                        // 角度が負数の場合
+                        // 上に向かうのでY=0
+                        y = 0;
+                        // 減算するで-1
+                        yPlus = -1;
+                        xPlus = -1;
+                        if (-90 <= angle) {
+                            // 角度が-90以上の場合は横幅-X
+                            xLength = this.width - this.x;
+                        }
                     }
-                    return false;
+                    // X座標算出
+                    x = this.x + (this.calcAdjacent(yLength, angle) * xPlus);
+                    // 0より小さい場合は0, 横幅より大きい場合は横幅を設定する
+                    x =  x < 0 ? 0 : this.width < x ? this.width : x;
+                    // X座標が0または横幅(横の壁からスタートする)場合はY2を再度算出する
+                    if (!(x != 0 && x != this.width)) {
+                        y = this.y + (Math.abs(this.calcOpposite(xLength, angle)) * yPlus);
+                    }
+                    // 設定したXY座標を返す
+                    return {'x':x, 'y':y};
                 }
-                // 起点座標取得
-                getXYFrom() {
-                    // X座標取得
-                    var getX = function(obj) {
-                        if (0 <= obj.angle) {
-                            // 高さと角度からY=0のx座標を求める
-                            return obj.x - obj.calcAdjacent(obj.y, obj.angle);
-                        } else {
-                            return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
-                        }
-                       
-                    };
-                    // Y座標取得 X座標修正
-                    var getY = function(x, obj) {
-                        // X座標がキャンバスにおさまっている場合はX座標は元のまま
-                        if (obj.isXInCanvas(x)) {
-                            if (0 <= obj.angle) {
-                                // 下に向かっている場合はy=0
-                                return {
-                                'x': x,
-                                'y': 0,
-                                }
-                            } else {
-                                // 上に向かっている場合はy=キャンバスの縦サイズ
-                                return {
-                                'x': x,
-                                'y': obj.height,
-                                }
-                            }
-                           
-                        }
-                        // X座標がキャンバスの外に出た場合は, X座標を固定して左右に接するY座標を求める
-                        if (90 <= obj.angle){
-                            // 角度が90以上場合
-                            return {
-                                    'x': obj.width,
-                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
-                                };
-                        } else if (0 <= obj.angle) {
-                            // 角度が0以上の場合
-                            return {
-                                    'x': 0,
-                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.x, obj.angle)),
-                                };
-                        } else if (-90 <= obj.angle) {
-                            // 角度が-90以上の場合
-                            return {
-                                    'x': 0,
-                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
-                                };
-                        } else {
-                            // 角度が-90より小さい場合
-                            return {
-                                    'x': obj.width,
-                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
-                            };
-                        }
-                    };
-                    var xy = getY(getX(this), this);
-                    // 起点のXY座標を返す
-                    return xy;
-                }
-                //  終点座標取得
-                getXYTo() {
-                    // X座標取得
-                    var getX = function(obj) {
-                        if (0 <= obj.angle) {
-                            return obj.x + obj.calcAdjacent(obj.height - obj.y, obj.angle);
-                        } else {
-                            return obj.x - obj.calcAdjacent(obj.y, obj.angle);
-                        }
-                        
-                    };
-                    // Y座標取得 X座標修正
-                    var getY = function(x, obj) {
-                        // X座標がキャンバスにおさまっている場合はX座標は元のまま
-                        if (obj.isXInCanvas(x)) {
-                            if (0 <= obj.angle) { 
-                                // 下に向かっている場合はy=キャンバスの縦サイズ
-                                return {
-                                    'x': x,
-                                    'y': obj.height,
-                                };
-                            } else {
-                                // 上に向かっている場合はy=0
-                                return {
-                                    'x': x,
-                                    'y': 0,
-                                };
-                            }
-                            
-                        }
-                        if (90 <= obj.angle) {
-                            // 角度が90以上の場合
-                            return {
-                                    'x': 0,
-                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.x, obj.angle)),
-                                };
-                        } else if (0 <= obj.angle) {
-                            // 角度が0以上の場合
-                            return {
-                                    'x': obj.width,
-                                    'y': obj.y + Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
-                                };
-                        } else if (-90 <= obj.angle) {
-                            //  角度が-90以上の場合
-                            return {
-                                    'x': obj.width,
-                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.width - obj.x, obj.angle)),
-                                };
-                        } else {
-                            // 角度が-90より小さい場合
-                            return {
-                                    'x': 0,
-                                    'y': obj.y - Math.abs(obj.calcOpposite(obj.x, obj.angle)),
-                                };
-                        }
-                    };
-                    // 終点のXY座標取得
-                    return getY(getX(this), this);
-                }
-                // 起点と終点を取得
+                // 始点と終点を取得
                 setFromTo() {
-                    // 起点
-                    this.xyFrom = this.getXYFrom();
+                    var angle = this.angle >= 0 ? this.angle -180 : this.angle + 180;
+                    // 始点
+                    this.xyFrom = this.getCanvasEdge(angle);
                     // 終点
-                    this.xyTo = this.getXYTo();
+                    this.xyTo = this.getCanvasEdge(this.angle);
                 }
                 //  線を描画する
                 drawLine() {
