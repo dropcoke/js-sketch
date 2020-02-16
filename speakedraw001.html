@@ -314,7 +314,7 @@
                 }
                 playSound() {
                     // 音量を設定 (0から1の間でランダム)
-                    var volume = Math.floor(Math.random() * 100);
+                    var volume = Math.floor(Math.random() * 100) / 100;
                     // 音程配列から今回再生する音程をランダムに取得
                     var note = this.notes[this.keys[Math.floor(Math.random() * this.keys.length)]];
                     // 波形(音色)配列から今回再生する波形をランダムに取得
@@ -323,9 +323,23 @@
                 }
                 // 衝突時の角度設定
                 setAngle() {
-                    // プラスの場合は180からマイナスの場合は-180から基の角度を減算する
-                    var addAngle = (this.angle > 0) ? 180 : -180;
-                    this.angle = addAngle - this.angle; 
+                    if (this.xyTo['y'] == 0 || this.xyTo['y'] == this.height) {
+                            this.angle = this.angle * -1;
+                    } else if (this.xyTo['x'] == 0 || this.xyTo['x'] == this.width) {
+                            var addAngle = (this.angle > 0) ? 180 : -180;
+                            this.angle = addAngle - this.angle;
+                    }
+                }
+                isEdge() {
+                   // 上下の両端に到達した場合
+                   if (this.y - this.radius <= 0 || this.y + this.radius >= this.height) {
+                        return true;
+                    }
+                    // 左右の両端に到達した場合
+                    if (this.x - this.radius <= 0 || this.x + this.radius >= this.width) {
+                        return true;
+                    } 
+                    return false;
                 }
                 // 他のオブジェクトと衝突したかどうか
                 isTouch() {
@@ -361,13 +375,9 @@
                     if (obj.isTouch()) {
                         changed = true;
                     }
-                    // 上下の両端に到達した場合
-                    if (obj.y - obj.radius <= 0 || obj.y + obj.radius >= obj.height) {
-                        obj.angle = obj.angle * -1; // 角度は+-
-                        changed = true;
-                    }
-                    // 左右の両端に到達した場合
-                    if (obj.x - obj.radius <= 0 || obj.x + obj.radius >= obj.width) {
+                    // // 上下左右の端に到達した場合
+                    if (obj.isEdge()) {
+                        // obj.angle = obj.angle * -1; // 角度は+-
                         obj.setAngle(); // 角度変更
                         changed = true;
                     }
