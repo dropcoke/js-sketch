@@ -308,7 +308,7 @@
                         this.count++;
                     }
                     // 表示順を設定する。
-                    this.element.style.zIndex = Math.floor(Math.random() * 3);
+                    this.element.style.zIndex = Math.floor(Math.random() * (this.balls.length + 1));
                     // 音再生
                     this.playSound();
                 }
@@ -323,12 +323,24 @@
                 }
                 // 衝突時の角度設定
                 setAngle() {
+                    this.radius = getRadius();
                     if (this.isEdge()) {
                         if (this.xyTo['y'] == 0 || this.xyTo['y'] == this.height) {
-                        this.angle = this.angle * -1;
+                            this.angle = this.angle * -1;
                         } else if (this.xyTo['x'] == 0 || this.xyTo['x'] == this.width) {
                             var addAngle = (this.angle > 0) ? 180 : -180;
                             this.angle = addAngle - this.angle;
+                        }
+                        if (this.y - this.radius < Math.abs(this.radius) * -1) {
+                            this.angle = Math.floor(Math.random() * 180)  + 1;
+                        } else if (this.y + this.radius > this.height + Math.abs(this.radius)) {
+                            this.angle = (Math.floor(Math.random() * 180)  + 1) * -1;
+                        } else if (this.x - this.radius < Math.abs(this.radius) * -1) {
+                            var plusMinus = [1, -1];
+                            this.angle = (Math.floor(Math.random() * 90)  + 1) * plusMinus[Math.floor(Math.random() * 2)];
+                        } else if (this.x + this.radius > this.width + Math.abs(this.radius)) {
+                            var plusMinus = [1, -1];
+                            this.angle = (Math.floor(Math.random() * 180)  + 91) * plusMinus[Math.floor(Math.random() * 2)];
                         }
                         return;
                     }
@@ -338,6 +350,7 @@
                     this.angle = Math.floor(Math.random() * 360) - 180;
                     this.step = getStep();
                     this.setTime = getTime();
+                    this.changeColor(); // 色変更
                 }
                 // 他のオブジェクトと衝突したかどうか
                 isTouch() {
@@ -371,6 +384,7 @@
                     } 
                     return false;
                 }
+                
                 // 動作開始
                 move(obj) {
                     // 初回起動時
@@ -397,7 +411,6 @@
                     // }
                     // 壁や他のオブジェクトに触れた場合
                     if (changed) {
-                        obj.changeColor(); // 色変更
                         obj.setStep(); // 次に進む距離を再設定
                         obj.setFromTo();  // 起点終点を変更
                         obj.resetCount(); // 画面初期化
@@ -443,11 +456,11 @@
             }
             // 初期円半径
             getRadius = function() {
-                return Math.floor(Math.random() * 25) + 15;
+                return Math.floor(Math.random() * 20) + 3;
             }
             // 初期移動距離
             getStep = function() {
-                return Math.floor(Math.random() * 10);
+                return Math.floor(Math.random() * 10) + 1;
             }
             // 初期移動タイミング
             getTime = function() {
@@ -468,7 +481,7 @@
                     'y': xy.y,
                     'angle': Math.floor(Math.random() * 360) - 180,
                     'fillStyle': getColor(),
-                    'radius': 9,
+                    'radius': getRadius(),
                     'setTime' : getTime(),
                     'step': getStep(),
                     'strokeStyle': getColor(),
@@ -509,15 +522,15 @@
                 // 8番目の円
                 var circle8 = new Circle('object-h', getAttribute());
                 circles['circle7'] = circle7;
-                // 9番目の円
-                var circle9 = new Circle('object-i', getAttribute());
-                circles['circle9'] = circle9;
-                // 10番目の円
-                var circle10 = new Circle('object-j', getAttribute());
-                circles['circle10'] = circle10;
-                // 11番目の円
-                var circle11 = new Circle('object-k', getAttribute());
-                circles['circle11'] = circle11;
+                // // 9番目の円
+                // var circle9 = new Circle('object-i', getAttribute());
+                // circles['circle9'] = circle9;
+                // // 10番目の円
+                // var circle10 = new Circle('object-j', getAttribute());
+                // circles['circle10'] = circle10;
+                // // 11番目の円
+                // var circle11 = new Circle('object-k', getAttribute());
+                // circles['circle11'] = circle11;
                 // 描画
                 for (let key in circles) {
                     setRelation(circles, circles[key], key);
